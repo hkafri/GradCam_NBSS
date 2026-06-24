@@ -27,6 +27,61 @@ pip install -r requirements.txt
 # gpuRIR: check https://github.com/DavidDiazGuerra/gpuRIR
 ```
 
+## Evaluation Example: Speaker Clustering & Reverberation
+
+### Overview
+
+This section demonstrates the **1D Time-Frequency Grad-CAM** interpretability method applied to the NBC2 (Narrow-band Conformer) speech separation model. The example shows how the network's attention patterns reveal speaker clustering and reverberation modeling without explicit positional encoding.
+
+### Running the Grad-CAM Example
+
+To reproduce the visualization shown below, run the test script on the included example audio:
+
+```bash
+python test_gradcam_nbc2.py \
+  --audio-path examples/NBC2/0_mix_8_Full.wav \
+  --output-figure gradcam_visualization.png \
+  --output-heatmap gradcam_heatmaps.pt
+```
+
+### Visualization & Interpretation
+
+![Grad-CAM 5-Panel Visualization](gradcam_nbc2_official_example_5panel.png)
+
+#### Panel Structure
+
+The above figure presents a 5-panel layout analyzing a highly reverberant audio mixture (RT60 = 0.8s) containing two speakers:
+
+1. **Panel 1 (Top):** Input mixture spectrogram (magnitude in dB)  
+   Shows the combined STFT of both speakers recorded in a reverberant environment.
+
+2. **Panel 2 (Middle-Upper):** Separated STFT magnitude spectrogram for Speaker 1 (dB)  
+   Represents the network's predicted speech for the first source.
+
+3. **Panel 3 (Center):** Grad-CAM attention heatmap for Speaker 1  
+   Visualizes which time-frequency regions were most important for separating Speaker 1. Warmer (yellow/red) regions indicate high attention, cooler (purple) regions indicate low attention.
+
+4. **Panel 4 (Middle-Lower):** Separated STFT magnitude spectrogram for Speaker 2 (dB)  
+   Represents the network's predicted speech for the second source.
+
+5. **Panel 5 (Bottom):** Grad-CAM attention heatmap for Speaker 2  
+   Shows the spatial attention pattern specific to Speaker 2 separation.
+
+#### Key Findings
+
+**Speaker Clustering:**
+The Grad-CAM heatmaps (Panels 3 and 5) reveal **distinct and non-overlapping attention patterns** for each speaker. This demonstrates that the NBC2 model has learned to implicitly group time-frequency bins belonging to individual sources without explicit clustering labels. The network successfully discovers that Speaker 1's energy concentrates in certain frequency bands while Speaker 2 occupies different regions, a form of **learned source separation** through attention.
+
+**Reverberation Modeling:**
+In this highly reverberant scenario, both attention maps exhibit characteristic **"slanted lines" or "slash" patterns** rather than vertical or horizontal streaks. This observation indicates that:
+
+- The deeper layers of NBC2 are **actively modeling the temporal smearing** introduced by room reverberation.
+- The slanted patterns reflect the network's learned response to acoustic echoes and late reverberation tails, which spread energy across time at each frequency.
+- Importantly, **no explicit positional encoding or hand-crafted temporal features** are used—the network learns reverberation dynamics purely from data through the Gram-CAM weighting of convolutional feature maps.
+- The slants suggest the network is exploiting spectro-temporal dependencies, where speech of one speaker at time $t$ influences predictions at nearby time steps $t + \Delta t$, a key characteristic of reverberant audio.
+
+This visualization validates that Conformer-based architectures like NBC2 can simultaneously achieve **speaker separation** and **reverberation awareness** through learned attention mechanisms, making them robust to real-world acoustic conditions.
+
 ## Generate Dataset SMS-WSJ-Plus
 
 Generate rirs for the dataset `SMS-WSJ_plus` used in `SpatialNet` ablation experiment.
